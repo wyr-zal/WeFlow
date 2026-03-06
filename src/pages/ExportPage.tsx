@@ -574,15 +574,19 @@ interface SessionSnsRankItem {
   latestTime: number
 }
 
-type SessionMutualFriendSource = 'likes' | 'comments' | 'both' | 'reverse'
+type SessionMutualFriendDirection = 'incoming' | 'outgoing' | 'bidirectional'
+type SessionMutualFriendBehavior = 'likes' | 'comments' | 'both'
 
 interface SessionMutualFriendItem {
   name: string
-  likeCount: number
-  commentCount: number
+  incomingLikeCount: number
+  incomingCommentCount: number
+  outgoingLikeCount: number
+  outgoingCommentCount: number
   totalCount: number
   latestTime: number
-  source: SessionMutualFriendSource
+  direction: SessionMutualFriendDirection
+  behavior: SessionMutualFriendBehavior
 }
 
 interface SessionMutualFriendsMetric {
@@ -659,19 +663,22 @@ const buildSessionMutualFriendsMetric = (
       const name = String(likeNameRaw || '').trim() || '未知用户'
       const existing = friendMap.get(name)
       if (existing) {
-        existing.likeCount += 1
+        existing.incomingLikeCount += 1
         existing.totalCount += 1
-        existing.source = existing.commentCount > 0 ? 'both' : 'likes'
+        existing.behavior = existing.incomingCommentCount > 0 ? 'both' : 'likes'
         if (createTime > existing.latestTime) existing.latestTime = createTime
         continue
       }
       friendMap.set(name, {
         name,
-        likeCount: 1,
-        commentCount: 0,
+        incomingLikeCount: 1,
+        incomingCommentCount: 0,
+        outgoingLikeCount: 0,
+        outgoingCommentCount: 0,
         totalCount: 1,
         latestTime: createTime,
-        source: 'likes'
+        direction: 'incoming',
+        behavior: 'likes'
       })
     }
 
@@ -679,19 +686,22 @@ const buildSessionMutualFriendsMetric = (
       const name = String(comment?.nickname || '').trim() || '未知用户'
       const existing = friendMap.get(name)
       if (existing) {
-        existing.commentCount += 1
+        existing.incomingCommentCount += 1
         existing.totalCount += 1
-        existing.source = existing.likeCount > 0 ? 'both' : 'comments'
+        existing.behavior = existing.incomingLikeCount > 0 ? 'both' : 'comments'
         if (createTime > existing.latestTime) existing.latestTime = createTime
         continue
       }
       friendMap.set(name, {
         name,
-        likeCount: 0,
-        commentCount: 1,
+        incomingLikeCount: 0,
+        incomingCommentCount: 1,
+        outgoingLikeCount: 0,
+        outgoingCommentCount: 0,
         totalCount: 1,
         latestTime: createTime,
-        source: 'comments'
+        direction: 'incoming',
+        behavior: 'comments'
       })
     }
   }
@@ -711,11 +721,41 @@ const buildSessionMutualFriendsMetric = (
   }
 }
 
-const getSessionMutualFriendSourceLabel = (source: SessionMutualFriendSource): string => {
-  if (source === 'both') return '点赞/评论'
-  if (source === 'reverse') return '反向关联'
-  if (source === 'likes') return '仅点赞'
-  return '仅评论'
+const getSessionMutualFriendDirectionLabel = (direction: SessionMutualFriendDirection): string => {
+  if (direction === 'incoming') return '对方赞/评TA'
+  if (direction === 'outgoing') return 'TA赞/评对方'
+  return '双方有互动'
+}
+
+const getSessionMutualFriendBehaviorLabel = (behavior: SessionMutualFriendBehavior): string => {
+  if (behavior === 'likes') return '赞'
+  if (behavior === 'comments') return '评'
+  return '赞/评'
+}
+
+const summarizeMutualFriendBehavior = (likeCount: number, commentCount: number): SessionMutualFriendBehavior => {
+  if (likeCount > 0 && commentCount > 0) return 'both'
+  if (likeCount > 0) return 'likes'
+  return 'comments'
+}
+
+const describeSessionMutualFriendRelation = (
+  item: SessionMutualFriendItem,
+  targetDisplayName: string
+): string => {
+  if (item.direction === 'incoming') {
+    if (item.behavior === 'likes') return `${item.name} 给 ${targetDisplayName} 点过赞`
+    if (item.behavior === 'comments') return `${item.name} 给 ${targetDisplayName} 评论过`
+    return `${item.name} 给 ${targetDisplayName} 点过赞、评论过`
+  }
+  if (item.direction === 'outgoing') {
+    if (item.behavior === 'likes') return `${targetDisplayName} 给 ${item.name} 点过赞`
+    if (item.behavior === 'comments') return `${targetDisplayName} 给 ${item.name} 评论过`
+    return `${targetDisplayName} 给 ${item.name} 点过赞、评论过`
+  }
+  if (item.behavior === 'likes') return `${targetDisplayName} 和 ${item.name} 双方都有点赞互动`
+  if (item.behavior === 'comments') return `${targetDisplayName} 和 ${item.name} 双方都有评论互动`
+  return `${targetDisplayName} 和 ${item.name} 双方都有点赞或评论互动`
 }
 
 interface SessionExportMetric {
@@ -2746,15 +2786,35 @@ function ExportPage() {
       if (reverseMatches.length === 0) continue
 
       const reverseCount = reverseMatches.reduce((sum, item) => sum + item.totalCount, 0)
+      const reverseLikeCount = reverseMatches.reduce((sum, item) => sum + item.incomingLikeCount, 0)
+      const reverseCommentCount = reverseMatches.reduce((sum, item) => sum + item.incomingCommentCount, 0)
       const reverseLatestTime = reverseMatches.reduce((latest, item) => Math.max(latest, item.latestTime), 0)
-      mergedMap.set(sourceProfile.displayName, {
-        name: sourceProfile.displayName,
-        likeCount: 0,
-        commentCount: 0,
-        totalCount: reverseCount,
-        latestTime: reverseLatestTime,
-        source: 'reverse'
-      })
+      const existing = mergedMap.get(sourceProfile.displayName)
+      if (existing) {
+        existing.outgoingLikeCount += reverseLikeCount
+        existing.outgoingCommentCount += reverseCommentCount
+        existing.totalCount += reverseCount
+        existing.latestTime = Math.max(existing.latestTime, reverseLatestTime)
+        existing.direction = (existing.incomingLikeCount + existing.incomingCommentCount) > 0
+          ? 'bidirectional'
+          : 'outgoing'
+        existing.behavior = summarizeMutualFriendBehavior(
+          existing.incomingLikeCount + existing.outgoingLikeCount,
+          existing.incomingCommentCount + existing.outgoingCommentCount
+        )
+      } else {
+        mergedMap.set(sourceProfile.displayName, {
+          name: sourceProfile.displayName,
+          incomingLikeCount: 0,
+          incomingCommentCount: 0,
+          outgoingLikeCount: reverseLikeCount,
+          outgoingCommentCount: reverseCommentCount,
+          totalCount: reverseCount,
+          latestTime: reverseLatestTime,
+          direction: 'outgoing',
+          behavior: summarizeMutualFriendBehavior(reverseLikeCount, reverseCommentCount)
+        })
+      }
     }
 
     const items = [...mergedMap.values()].sort((a, b) => {
@@ -6439,10 +6499,20 @@ function ExportPage() {
                       {filteredSessionMutualFriendsDialogItems.map((item, index) => (
                         <div className="session-mutual-friends-row" key={`${sessionMutualFriendsDialogTarget.username}-${item.name}`}>
                           <span className="session-mutual-friends-rank">{index + 1}</span>
-                          <span className="session-mutual-friends-name" title={item.name}>{item.name}</span>
-                          <span className={`session-mutual-friends-source ${item.source}`}>
-                            {getSessionMutualFriendSourceLabel(item.source)}
-                          </span>
+                          <div className="session-mutual-friends-main">
+                            <span className="session-mutual-friends-name" title={item.name}>{item.name}</span>
+                            <div className="session-mutual-friends-tags">
+                              <span className={`session-mutual-friends-source ${item.direction}`}>
+                                {getSessionMutualFriendDirectionLabel(item.direction)}
+                              </span>
+                              <span className={`session-mutual-friends-source session-mutual-friends-behavior ${item.behavior}`}>
+                                {getSessionMutualFriendBehaviorLabel(item.behavior)}
+                              </span>
+                            </div>
+                            <div className="session-mutual-friends-desc">
+                              {describeSessionMutualFriendRelation(item, sessionMutualFriendsDialogTarget.displayName)}
+                            </div>
+                          </div>
                           <span className="session-mutual-friends-count">{item.totalCount.toLocaleString('zh-CN')}</span>
                           <span className="session-mutual-friends-latest">{formatYmdDateFromSeconds(item.latestTime)}</span>
                         </div>
