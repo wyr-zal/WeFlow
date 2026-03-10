@@ -6328,6 +6328,49 @@ function ExportPage() {
       <div className="session-table-section" ref={sessionTableSectionRef}>
         <div className="session-table-layout">
           <div className="table-wrap" style={contactsTableStyle}>
+            <div className="table-toolbar">
+              <div className="table-tabs" role="tablist" aria-label="会话类型">
+                <button className={`tab-btn ${activeTab === 'private' ? 'active' : ''}`} onClick={() => setActiveTab('private')}>
+                  <span className="tab-btn-content">
+                    <span>私聊</span>
+                    <span>{isTabCountComputing ? <span className="count-loading">计算中<span className="animated-ellipsis" aria-hidden="true">...</span></span> : tabCounts.private}</span>
+                  </span>
+                </button>
+                <button className={`tab-btn ${activeTab === 'group' ? 'active' : ''}`} onClick={() => setActiveTab('group')}>
+                  <span className="tab-btn-content">
+                    <span>群聊</span>
+                    <span>{isTabCountComputing ? <span className="count-loading">计算中<span className="animated-ellipsis" aria-hidden="true">...</span></span> : tabCounts.group}</span>
+                  </span>
+                </button>
+                <button className={`tab-btn ${activeTab === 'former_friend' ? 'active' : ''}`} onClick={() => setActiveTab('former_friend')}>
+                  <span className="tab-btn-content">
+                    <span>曾经的好友</span>
+                    <span>{isTabCountComputing ? <span className="count-loading">计算中<span className="animated-ellipsis" aria-hidden="true">...</span></span> : tabCounts.former_friend}</span>
+                  </span>
+                </button>
+              </div>
+
+              <div className="toolbar-actions">
+                <div className="search-input-wrap">
+                  <Search size={14} />
+                  <input
+                    value={searchKeyword}
+                    onChange={(event) => setSearchKeyword(event.target.value)}
+                    placeholder={`搜索${activeTabLabel}联系人...`}
+                  />
+                  {searchKeyword && (
+                    <button className="clear-search" onClick={() => setSearchKeyword('')}>
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+                <button className="secondary-btn" onClick={() => void loadContactsList()} disabled={isContactsListLoading}>
+                  <RefreshCw size={14} className={isContactsListLoading ? 'spin' : ''} />
+                  刷新
+                </button>
+              </div>
+            </div>
+
             <div
               ref={contactsHorizontalViewportRef}
               className="table-scroll-viewport"
@@ -6335,49 +6378,6 @@ function ExportPage() {
             >
               <div ref={contactsHorizontalContentRef} className="table-scroll-content">
                 <div className="session-table-sticky">
-                  <div className="table-toolbar">
-                    <div className="table-tabs" role="tablist" aria-label="会话类型">
-                      <button className={`tab-btn ${activeTab === 'private' ? 'active' : ''}`} onClick={() => setActiveTab('private')}>
-                        <span className="tab-btn-content">
-                          <span>私聊</span>
-                          <span>{isTabCountComputing ? <span className="count-loading">计算中<span className="animated-ellipsis" aria-hidden="true">...</span></span> : tabCounts.private}</span>
-                        </span>
-                      </button>
-                      <button className={`tab-btn ${activeTab === 'group' ? 'active' : ''}`} onClick={() => setActiveTab('group')}>
-                        <span className="tab-btn-content">
-                          <span>群聊</span>
-                          <span>{isTabCountComputing ? <span className="count-loading">计算中<span className="animated-ellipsis" aria-hidden="true">...</span></span> : tabCounts.group}</span>
-                        </span>
-                      </button>
-                      <button className={`tab-btn ${activeTab === 'former_friend' ? 'active' : ''}`} onClick={() => setActiveTab('former_friend')}>
-                        <span className="tab-btn-content">
-                          <span>曾经的好友</span>
-                          <span>{isTabCountComputing ? <span className="count-loading">计算中<span className="animated-ellipsis" aria-hidden="true">...</span></span> : tabCounts.former_friend}</span>
-                        </span>
-                      </button>
-                    </div>
-
-                    <div className="toolbar-actions">
-                      <div className="search-input-wrap">
-                        <Search size={14} />
-                        <input
-                          value={searchKeyword}
-                          onChange={(event) => setSearchKeyword(event.target.value)}
-                          placeholder={`搜索${activeTabLabel}联系人...`}
-                        />
-                        {searchKeyword && (
-                          <button className="clear-search" onClick={() => setSearchKeyword('')}>
-                            <X size={12} />
-                          </button>
-                        )}
-                      </div>
-                      <button className="secondary-btn" onClick={() => void loadContactsList()} disabled={isContactsListLoading}>
-                        <RefreshCw size={14} className={isContactsListLoading ? 'spin' : ''} />
-                        刷新
-                      </button>
-                    </div>
-                  </div>
-
                   {contactsList.length > 0 && isContactsListLoading && (
                     <div className="table-stage-hint">
                       <Loader2 size={14} className="spin" />
