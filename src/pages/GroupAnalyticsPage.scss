@@ -1,6 +1,14 @@
+.group-analytics-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100%;
+}
+
 .group-analytics-page {
   display: flex;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   gap: 16px;
 
   &.standalone {
@@ -463,10 +471,6 @@
   background: var(--bg-secondary);
   border-radius: 16px;
   overflow: hidden;
-
-  .chat-analysis-header {
-    margin: 16px 16px 0;
-  }
 }
 
 .resize-handle {

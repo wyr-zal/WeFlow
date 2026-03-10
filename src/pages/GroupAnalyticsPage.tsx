@@ -1186,12 +1186,14 @@ function GroupAnalyticsPage() {
   }
 
   return (
-    <div className={`group-analytics-page ${isResizing ? 'resizing' : ''}`} ref={containerRef}>
-      {renderGroupList()}
-      <div className="resize-handle" onMouseDown={() => setIsResizing(true)} />
-      <div className="detail-area">
-        <ChatAnalysisHeader currentMode="group" />
-        {renderDetailPanel()}
+    <div className="group-analytics-shell">
+      <ChatAnalysisHeader currentMode="group" />
+      <div className={`group-analytics-page ${isResizing ? 'resizing' : ''}`} ref={containerRef}>
+        {renderGroupList()}
+        <div className="resize-handle" onMouseDown={() => setIsResizing(true)} />
+        <div className="detail-area">
+          {renderDetailPanel()}
+        </div>
       </div>
       {renderMemberModal()}
     </div>
