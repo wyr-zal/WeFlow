@@ -1425,6 +1425,8 @@ function SettingsPage({ onClose }: SettingsPageProps = {}) {
       </div>
     </div>
   )
+  const resolvedWhisperModelPath = whisperModelDir || whisperModelStatus?.modelPath || ''
+
   const renderModelsTab = () => (
     <div className="tab-content">
       <div className="form-group">
@@ -1439,42 +1441,52 @@ function SettingsPage({ onClose }: SettingsPageProps = {}) {
         <div className="setting-control vertical has-border">
           <div className="model-status-card">
             <div className="model-info">
-              <div className="model-name">SenseVoiceSmall (245 MB)</div>
-              <div className="model-path">
+              <div className="model-name-row">
+                <div className="model-name">SenseVoiceSmall</div>
+                <span className="model-size">245 MB</span>
+              </div>
+              <div className="model-meta">
                 {whisperModelStatus?.exists ? (
                   <span className="status-indicator success"><Check size={14} /> 已安装</span>
                 ) : (
                   <span className="status-indicator warning">未安装</span>
                 )}
-                {whisperModelDir && <div className="path-text" title={whisperModelDir}>{whisperModelDir}</div>}
+                {resolvedWhisperModelPath && (
+                  <div className="model-path-block">
+                    <span className="path-label">模型目录</span>
+                    <div className="path-text" title={resolvedWhisperModelPath}>{resolvedWhisperModelPath}</div>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="model-actions">
-              {!whisperModelStatus?.exists && !isWhisperDownloading && (
-                <button
-                  className="btn-download"
-                  onClick={handleDownloadWhisperModel}
-                >
-                  <Download size={16} /> 下载模型
-                </button>
-              )}
-              {isWhisperDownloading && (
-                <div className="download-status">
-                  <div className="status-header">
-                    <span className="percent">{Math.round(whisperDownloadProgress)}%</span>
-                    {whisperProgressData.total > 0 && (
-                      <span className="details">
-                        {formatBytes(whisperProgressData.downloaded)} / {formatBytes(whisperProgressData.total)}
-                        <span className="speed">({formatBytes(whisperProgressData.speed)}/s)</span>
-                      </span>
-                    )}
+            {(!whisperModelStatus?.exists || isWhisperDownloading) && (
+              <div className="model-actions">
+                {!whisperModelStatus?.exists && !isWhisperDownloading && (
+                  <button
+                    className="btn-download"
+                    onClick={handleDownloadWhisperModel}
+                  >
+                    <Download size={16} /> 下载模型
+                  </button>
+                )}
+                {isWhisperDownloading && (
+                  <div className="download-status">
+                    <div className="status-header">
+                      <span className="percent">{Math.round(whisperDownloadProgress)}%</span>
+                      {whisperProgressData.total > 0 && (
+                        <span className="details">
+                          {formatBytes(whisperProgressData.downloaded)} / {formatBytes(whisperProgressData.total)}
+                          <span className="speed">({formatBytes(whisperProgressData.speed)}/s)</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="progress-bar-mini">
+                      <div className="fill" style={{ width: `${whisperDownloadProgress}%` }}></div>
+                    </div>
                   </div>
-                  <div className="progress-bar-mini">
-                    <div className="fill" style={{ width: `${whisperDownloadProgress}%` }}></div>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="sub-setting">
