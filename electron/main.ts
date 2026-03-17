@@ -281,12 +281,18 @@ const requestMainWindowCloseConfirmation = (win: BrowserWindow): void => {
 function createWindow(options: { autoShow?: boolean } = {}) {
   // 获取图标路径 - 打包后在 resources 目录
   const { autoShow = true } = options
+  let iconName = 'icon.ico';
+  if (process.platform === 'linux') {
+    iconName = 'icon.png';
+  } else if (process.platform === 'darwin') {
+    iconName = 'icon.icns';
+  }
+
   const isDev = !!process.env.VITE_DEV_SERVER_URL
+
   const iconPath = isDev
-    ? join(__dirname, '../public/icon.ico')
-    : (process.platform === 'darwin' 
-        ? join(process.resourcesPath, 'icon.icns')
-        : join(process.resourcesPath, 'icon.ico'))
+      ? join(__dirname, `../public/${iconName}`)
+      : join(process.resourcesPath, iconName);
 
   const win = new BrowserWindow({
     width: 1400,
@@ -2534,12 +2540,20 @@ app.whenReady().then(async () => {
   updateSplashProgress(30, '正在加载界面...')
   mainWindow = createWindow({ autoShow: false })
 
-  // 初始化系统托盘图标（与其他窗口 icon 路径逻辑保持一致）
-  const resolvedTrayIcon = process.platform === 'win32'
-    ? join(__dirname, '../public/icon.ico')
-    : (process.platform === 'darwin'
-        ? join(process.resourcesPath, 'icon.icns')
-        : join(process.resourcesPath, 'icon.ico'))
+  let iconName = 'icon.ico';
+  if (process.platform === 'linux') {
+    iconName = 'icon.png';
+  } else if (process.platform === 'darwin') {
+    iconName = 'icon.icns';
+  }
+
+  const isDev = !!process.env.VITE_DEV_SERVER_URL
+
+  const resolvedTrayIcon = isDev
+      ? join(__dirname, `../public/${iconName}`)
+      : join(process.resourcesPath, iconName);
+
+
   try {
     tray = new Tray(resolvedTrayIcon)
     tray.setToolTip('WeFlow')
