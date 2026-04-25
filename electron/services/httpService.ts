@@ -26,7 +26,7 @@ interface ChatLabHeader {
 interface ChatLabMeta {
   name: string
   platform: string
-  type: 'group' | 'private'
+  type: ApiSessionType
   groupId?: string
   groupAvatar?: string
   ownerId?: string
@@ -68,6 +68,7 @@ interface ApiMediaOptions {
 }
 
 type MediaKind = 'image' | 'voice' | 'video' | 'emoji'
+type ApiSessionType = 'group' | 'private' | 'channel' | 'other'
 
 interface ApiExportedMedia {
   kind: MediaKind
@@ -781,6 +782,17 @@ class HttpService {
     }
   }
 
+  private getApiSessionType(username: string): ApiSessionType {
+    const normalized = String(username || '').trim()
+    const lowered = normalized.toLowerCase()
+    if (!normalized) return 'other'
+    if (lowered.endsWith('@chatroom')) return 'group'
+    if (lowered.startsWith('gh_')) return 'channel'
+    if (lowered.includes('@openim')) return 'channel'
+    if (lowered.startsWith('weixin') && lowered !== 'weixin') return 'channel'
+    return 'private'
+  }
+
   private async handleMessages(url: URL, res: http.ServerResponse): Promise<void> {
     const talker = (url.searchParams.get('talker') || '').trim()
     const limit = this.parseIntParam(url.searchParams.get('limit'), 100, 1, 10000)
@@ -910,7 +922,7 @@ class HttpService {
             id: s.username,
             name: s.displayName || s.username,
             platform: 'wechat',
-            type: s.username.endsWith('@chatroom') ? 'group' : 'private',
+            type: this.getApiSessionType(s.username),
             messageCount: s.messageCountHint || undefined,
             lastMessageAt: s.lastTimestamp
           }))
@@ -925,6 +937,7 @@ class HttpService {
           username: s.username,
           displayName: s.displayName,
           type: s.type,
+          sessionType: this.getApiSessionType(s.username),
           lastTimestamp: s.lastTimestamp,
           unreadCount: s.unreadCount
         }))
@@ -1882,7 +1895,7 @@ class HttpService {
       meta: {
         name: talkerName,
         platform: 'wechat',
-        type: isGroup ? 'group' : 'private',
+        type: this.getApiSessionType(talkerId),
         groupId: isGroup ? talkerId : undefined,
         groupAvatar: isGroup ? sessionAvatarInfo?.avatarUrl : undefined,
         ownerId: myWxid || undefined
